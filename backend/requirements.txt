@@ -1,0 +1,22 @@
+# Web framework
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+
+# Image processing
+Pillow==10.3.0
+
+# 3D mesh handling
+trimesh==4.3.1
+numpy==1.26.4
+
+# PyTorch — install CUDA version manually if not already installed:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=2.1.0
+torchvision>=0.16.0
+
+# TripoSR (image → 3D) — install from GitHub:
+# pip install git+https://github.com/VAST-AI-Research/TripoSR.git
+
+# Shap-E (text → 3D) — install from GitHub:
+# pip install git+https://github.com/openai/shap-e.git
