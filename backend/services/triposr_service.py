@@ -1,8 +1,15 @@
 """TripoSR service — image → 3D mesh (STL / OBJ / GLB)."""
 from __future__ import annotations
 
+import os
+import sys
 import torch
 from PIL import Image
+
+# TripoSR has no setup.py — clone it into backend/TripoSR and add to path
+_tsr_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "TripoSR")
+if os.path.isdir(_tsr_dir) and _tsr_dir not in sys.path:
+    sys.path.insert(0, _tsr_dir)
 
 _model = None
 
@@ -14,8 +21,9 @@ def _get_model():
             from tsr.system import TSR
         except ImportError:
             raise RuntimeError(
-                "TripoSR is not installed. Run:\n"
-                "  pip install git+https://github.com/VAST-AI-Research/TripoSR.git"
+                "TripoSR no está instalado. Ejecuta en la carpeta backend/:\n"
+                "  git clone https://github.com/VAST-AI-Research/TripoSR.git TripoSR\n"
+                "  pip install -r TripoSR/requirements.txt"
             )
         device = "cuda" if torch.cuda.is_available() else "cpu"
         _model = TSR.from_pretrained(

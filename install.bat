@@ -14,7 +14,10 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 echo.
 
 echo [3/4] Instalando modelos de IA...
-pip install git+https://github.com/VAST-AI-Research/TripoSR.git
+if not exist TripoSR (
+    git clone https://github.com/VAST-AI-Research/TripoSR.git TripoSR
+)
+pip install -r TripoSR/requirements.txt
 pip install git+https://github.com/openai/shap-e.git
 cd ..
 echo.
