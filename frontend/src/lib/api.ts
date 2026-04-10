@@ -9,16 +9,30 @@ export interface JobStatus {
   error: string | null;
 }
 
-export async function generateFromText(prompt: string): Promise<string> {
+export interface ImageOptions {
+  resolution: number;
+  removeBg: boolean;
+  enhance: boolean;
+}
+
+export interface TextOptions {
+  quality: "fast" | "normal" | "high";
+}
+
+export async function generateFromText(prompt: string, options: TextOptions): Promise<string> {
   const form = new FormData();
   form.append("prompt", prompt);
+  form.append("quality", options.quality);
   const res = await axios.post(`${BASE}/generate/text`, form);
   return res.data.job_id;
 }
 
-export async function generateFromImage(file: File): Promise<string> {
+export async function generateFromImage(file: File, options: ImageOptions): Promise<string> {
   const form = new FormData();
   form.append("file", file);
+  form.append("resolution", options.resolution.toString());
+  form.append("remove_bg", options.removeBg.toString());
+  form.append("enhance", options.enhance.toString());
   const res = await axios.post(`${BASE}/generate/image`, form);
   return res.data.job_id;
 }

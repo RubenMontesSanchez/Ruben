@@ -7,6 +7,8 @@ import trimesh
 
 _models = None
 
+QUALITY_STEPS = {"fast": 32, "normal": 64, "high": 128}
+
 
 def _get_models():
     global _models
@@ -27,11 +29,12 @@ def _get_models():
     return _models
 
 
-def generate_from_text(prompt: str, output_base: str, progress_cb=None):
+def generate_from_text(prompt: str, output_base: str, progress_cb=None, quality: str = "normal"):
     from shap_e.diffusion.sample import sample_latents
     from shap_e.util.notebooks import decode_latent_mesh
 
     xm, model, diffusion, device = _get_models()
+    steps = QUALITY_STEPS.get(quality, 64)
 
     if progress_cb:
         progress_cb(15)
@@ -46,7 +49,7 @@ def generate_from_text(prompt: str, output_base: str, progress_cb=None):
         clip_denoised=True,
         use_fp16=True,
         use_karras=True,
-        karras_steps=64,
+        karras_steps=steps,
         sigma_min=1e-3,
         sigma_max=160,
         s_churn=0,

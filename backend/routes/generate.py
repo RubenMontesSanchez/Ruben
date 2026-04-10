@@ -13,6 +13,9 @@ jobs: dict = {}
 async def generate_image_to_3d(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    resolution: int = Form(256),
+    remove_bg: bool = Form(True),
+    enhance: bool = Form(False),
 ):
     job_id = str(uuid.uuid4())
     jobs[job_id] = {"status": "pending", "progress": 0, "output": None, "error": None}
@@ -22,7 +25,7 @@ async def generate_image_to_3d(
     with open(img_path, "wb") as f:
         f.write(content)
 
-    background_tasks.add_task(_run_image_generation, job_id, img_path)
+    background_tasks.add_task(_run_image_generation, job_id, img_path, resolution, remove_bg, enhance)
     return {"job_id": job_id}
 
 
@@ -30,11 +33,12 @@ async def generate_image_to_3d(
 async def generate_text_to_3d(
     background_tasks: BackgroundTasks,
     prompt: str = Form(...),
+    quality: str = Form("normal"),
 ):
     job_id = str(uuid.uuid4())
     jobs[job_id] = {"status": "pending", "progress": 0, "output": None, "error": None}
 
-    background_tasks.add_task(_run_text_generation, job_id, prompt)
+    background_tasks.add_task(_run_text_generation, job_id, prompt, quality)
     return {"job_id": job_id}
 
 
@@ -72,11 +76,17 @@ def _update(job_id: str, progress: int):
     jobs[job_id]["progress"] = progress
 
 
-def _run_image_generation(job_id: str, img_path: str):
+def _run_image_generation(job_id: str, img_path: str, resolution: int, remove_bg: bool, enhance: bool):
     try:
         jobs[job_id]["status"] = "processing"
         from services.triposr_service import generate_from_image
-        generate_from_image(img_path, f"outputs/{job_id}", lambda p: _update(job_id, p))
+        generate_from_image(
+            img_path, f"outputs/{job_id}",
+            lambda p: _update(job_id, p),
+            resolution=resolution,
+            remove_bg=remove_bg,
+            enhance=enhance,
+        )
         jobs[job_id].update({"status": "completed", "progress": 100, "output": f"/outputs/{job_id}.glb"})
     except Exception as e:
         import traceback
@@ -84,11 +94,13 @@ def _run_image_generation(job_id: str, img_path: str):
         jobs[job_id].update({"status": "error", "error": str(e)})
 
 
-def _run_text_generation(job_id: str, prompt: str):
+def _run_text_generation(job_id: str, prompt: str, quality: str):
     try:
         jobs[job_id]["status"] = "processing"
         from services.shape_service import generate_from_text
-        generate_from_text(prompt, f"outputs/{job_id}", lambda p: _update(job_id, p))
+        generate_from_text(prompt, f"outputs/{job_id}", lambda p: _update(job_id, p), quality=quality)
         jobs[job_id].update({"status": "completed", "progress": 100, "output": f"/outputs/{job_id}.glb"})
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         jobs[job_id].update({"status": "error", "error": str(e)})

@@ -21,7 +21,7 @@ def _get_model():
             from tsr.system import TSR
         except ImportError:
             raise RuntimeError(
-                "TripoSR no está instalado. Ejecuta en la carpeta backend/:\n"
+                "TripoSR no esta instalado. Ejecuta en la carpeta backend/:\n"
                 "  git clone https://github.com/VAST-AI-Research/TripoSR.git TripoSR\n"
                 "  pip install -r TripoSR/requirements.txt"
             )
@@ -37,41 +37,59 @@ def _get_model():
     return _model
 
 
-def generate_from_image(img_path: str, output_base: str, progress_cb=None):
+def generate_from_image(
+    img_path: str,
+    output_base: str,
+    progress_cb=None,
+    resolution: int = 256,
+    remove_bg: bool = True,
+    enhance: bool = False,
+):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = _get_model()
 
     if progress_cb:
-        progress_cb(15)
+        progress_cb(10)
 
-    # Use TripoSR's built-in preprocessing: remove bg + center/resize object
-    from tsr.utils import remove_background, resize_foreground
-    from rembg import new_session as rembg_new_session
-
-    rembg_session = rembg_new_session()
     raw = Image.open(img_path)
-    image = remove_background(raw, rembg_session)  # → RGBA, bg transparent
-    image = resize_foreground(image, 0.85)          # center object, 85% of frame
 
-    # Composite on white → RGB for CLIP encoder
-    bg = Image.new("RGBA", image.size, (255, 255, 255, 255))
-    bg.paste(image, mask=image.split()[3])
-    image = bg.convert("RGB")
+    # Optional: enhance contrast and sharpness
+    if enhance:
+        from PIL import ImageEnhance
+        raw = raw.convert("RGB")
+        raw = ImageEnhance.Contrast(raw).enhance(1.3)
+        raw = ImageEnhance.Sharpness(raw).enhance(1.5)
 
     if progress_cb:
-        progress_cb(30)
+        progress_cb(20)
+
+    # Background removal + centering (TripoSR built-in preprocessing)
+    if remove_bg:
+        from tsr.utils import remove_background, resize_foreground
+        from rembg import new_session as rembg_new_session
+        rembg_session = rembg_new_session()
+        image = remove_background(raw, rembg_session)   # → RGBA, transparent bg
+        image = resize_foreground(image, 0.85)           # center object in frame
+        bg = Image.new("RGBA", image.size, (255, 255, 255, 255))
+        bg.paste(image, mask=image.split()[3])
+        image = bg.convert("RGB")
+    else:
+        image = raw.convert("RGB")
+
+    if progress_cb:
+        progress_cb(35)
 
     with torch.no_grad():
         scene_codes = model([image], device=device)
 
     if progress_cb:
-        progress_cb(65)
+        progress_cb(70)
 
-    meshes = model.extract_mesh(scene_codes, has_vertex_color=False, resolution=256)
+    meshes = model.extract_mesh(scene_codes, has_vertex_color=False, resolution=resolution)
     mesh = meshes[0]
 
     if progress_cb:
-        progress_cb(85)
+        progress_cb(88)
 
     mesh.export(f"{output_base}.glb")
     mesh.export(f"{output_base}.stl")
