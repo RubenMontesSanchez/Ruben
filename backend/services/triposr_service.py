@@ -61,7 +61,7 @@ def generate_from_image(img_path: str, output_base: str, progress_cb=None):
     if progress_cb:
         progress_cb(65)
 
-    meshes = model.extract_mesh(scene_codes, has_vertex_color=False, resolution=256)
+    meshes = model.extract_mesh(scene_codes, has_vertex_color=False, resolution=128)
     mesh = meshes[0]
 
     if progress_cb:

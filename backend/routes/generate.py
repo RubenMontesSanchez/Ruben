@@ -79,6 +79,8 @@ def _run_image_generation(job_id: str, img_path: str):
         generate_from_image(img_path, f"outputs/{job_id}", lambda p: _update(job_id, p))
         jobs[job_id].update({"status": "completed", "progress": 100, "output": f"/outputs/{job_id}.glb"})
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         jobs[job_id].update({"status": "error", "error": str(e)})
 
 
