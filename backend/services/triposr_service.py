@@ -44,13 +44,19 @@ def generate_from_image(img_path: str, output_base: str, progress_cb=None):
     if progress_cb:
         progress_cb(15)
 
-    # Remove background and composite on white → RGB (3 channels)
-    from rembg import remove as rembg_remove
-    raw = Image.open(img_path).convert("RGBA")
-    no_bg = rembg_remove(raw)
-    bg = Image.new("RGB", no_bg.size, (255, 255, 255))
-    bg.paste(no_bg, mask=no_bg.split()[3])
-    image = bg
+    # Use TripoSR's built-in preprocessing: remove bg + center/resize object
+    from tsr.utils import remove_background, resize_foreground
+    from rembg import new_session as rembg_new_session
+
+    rembg_session = rembg_new_session()
+    raw = Image.open(img_path)
+    image = remove_background(raw, rembg_session)  # → RGBA, bg transparent
+    image = resize_foreground(image, 0.85)          # center object, 85% of frame
+
+    # Composite on white → RGB for CLIP encoder
+    bg = Image.new("RGBA", image.size, (255, 255, 255, 255))
+    bg.paste(image, mask=image.split()[3])
+    image = bg.convert("RGB")
 
     if progress_cb:
         progress_cb(30)
