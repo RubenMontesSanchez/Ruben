@@ -44,7 +44,13 @@ def generate_from_image(img_path: str, output_base: str, progress_cb=None):
     if progress_cb:
         progress_cb(15)
 
-    image = Image.open(img_path).convert("RGBA")
+    # Remove background and composite on white → RGB (3 channels)
+    from rembg import remove as rembg_remove
+    raw = Image.open(img_path).convert("RGBA")
+    no_bg = rembg_remove(raw)
+    bg = Image.new("RGB", no_bg.size, (255, 255, 255))
+    bg.paste(no_bg, mask=no_bg.split()[3])
+    image = bg
 
     if progress_cb:
         progress_cb(30)
