@@ -13,6 +13,7 @@ export interface ImageOptions {
   resolution: number;
   removeBg: boolean;
   enhance: boolean;
+  pipeline: "standard" | "advanced";
 }
 
 export interface TextOptions {
@@ -33,6 +34,7 @@ export async function generateFromImage(file: File, options: ImageOptions): Prom
   form.append("resolution", options.resolution.toString());
   form.append("remove_bg", options.removeBg.toString());
   form.append("enhance", options.enhance.toString());
+  form.append("pipeline", options.pipeline);
   const res = await axios.post(`${BASE}/generate/image`, form);
   return res.data.job_id;
 }

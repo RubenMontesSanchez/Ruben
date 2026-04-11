@@ -16,6 +16,7 @@ async def generate_image_to_3d(
     resolution: int = Form(256),
     remove_bg: bool = Form(True),
     enhance: bool = Form(False),
+    pipeline: str = Form("standard"),   # "standard" | "advanced"
 ):
     job_id = str(uuid.uuid4())
     jobs[job_id] = {"status": "pending", "progress": 0, "output": None, "error": None}
@@ -25,7 +26,7 @@ async def generate_image_to_3d(
     with open(img_path, "wb") as f:
         f.write(content)
 
-    background_tasks.add_task(_run_image_generation, job_id, img_path, resolution, remove_bg, enhance)
+    background_tasks.add_task(_run_image_generation, job_id, img_path, resolution, remove_bg, enhance, pipeline)
     return {"job_id": job_id}
 
 
@@ -76,11 +77,14 @@ def _update(job_id: str, progress: int):
     jobs[job_id]["progress"] = progress
 
 
-def _run_image_generation(job_id: str, img_path: str, resolution: int, remove_bg: bool, enhance: bool):
+def _run_image_generation(job_id: str, img_path: str, resolution: int, remove_bg: bool, enhance: bool, pipeline: str):
     try:
         jobs[job_id]["status"] = "processing"
-        from services.triposr_service import generate_from_image
-        generate_from_image(
+        if pipeline == "advanced":
+            from services.triposr_service import generate_from_image_advanced as _gen
+        else:
+            from services.triposr_service import generate_from_image as _gen
+        _gen(
             img_path, f"outputs/{job_id}",
             lambda p: _update(job_id, p),
             resolution=resolution,

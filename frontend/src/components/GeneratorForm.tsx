@@ -78,6 +78,7 @@ export default function GeneratorForm({ onComplete }: Props) {
   const [resolution, setResolution] = useState(256);
   const [removeBg, setRemoveBg]     = useState(true);
   const [enhance, setEnhance]       = useState(false);
+  const [pipeline, setPipeline]     = useState<"standard" | "advanced">("standard");
 
   // Text options
   const [quality, setQuality]       = useState<Quality>("normal");
@@ -102,7 +103,7 @@ export default function GeneratorForm({ onComplete }: Props) {
         jobId = await generateFromText(prompt.trim(), { quality });
       } else {
         if (!imageFile) throw new Error("Selecciona una imagen");
-        jobId = await generateFromImage(imageFile, { resolution, removeBg, enhance });
+        jobId = await generateFromImage(imageFile, { resolution, removeBg, enhance, pipeline });
       }
 
       await new Promise<void>((resolve, reject) => {
@@ -202,6 +203,35 @@ export default function GeneratorForm({ onComplete }: Props) {
                 <p className="text-xs text-slate-500">Aumenta contraste y nitidez</p>
               </div>
               <Toggle value={enhance} onChange={setEnhance} />
+            </div>
+
+            <div className="flex flex-col gap-1.5 pt-1 border-t border-slate-700/50">
+              <label className="text-sm text-slate-300">Pipeline de reconstrucción</label>
+              <div className="flex gap-1 p-1 bg-slate-800 rounded-lg">
+                <button
+                  onClick={() => setPipeline("standard")}
+                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    pipeline === "standard" ? "bg-brand-500 text-white" : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Estándar
+                  <span className="block text-[10px] opacity-70">TripoSR · ~30s</span>
+                </button>
+                <button
+                  onClick={() => setPipeline("advanced")}
+                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    pipeline === "advanced" ? "bg-brand-500 text-white" : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Avanzada
+                  <span className="block text-[10px] opacity-70">Zero123++ + TripoSR · ~3min</span>
+                </button>
+              </div>
+              {pipeline === "advanced" && (
+                <p className="text-[11px] text-amber-400/80 leading-snug">
+                  Primera vez descarga ~5.5 GB. Gestión VRAM secuencial para no saturar la GPU.
+                </p>
+              )}
             </div>
           </>
         ) : (
