@@ -39,6 +39,13 @@ export async function generateFromImage(file: File, options: ImageOptions): Prom
   return res.data.job_id;
 }
 
+export async function analyzeImage(file: File): Promise<{ label: string; confidence: number }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await axios.post(`${BASE}/analyze`, form);
+  return res.data;
+}
+
 export async function pollStatus(jobId: string): Promise<JobStatus> {
   const res = await axios.get(`${BASE}/status/${jobId}`);
   return res.data;

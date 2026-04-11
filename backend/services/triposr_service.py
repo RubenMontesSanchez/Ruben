@@ -56,10 +56,10 @@ def _preprocess(img_path: str, remove_bg: bool, enhance: bool) -> Image.Image:
         raw = ImageEnhance.Sharpness(raw).enhance(1.5)
 
     if remove_bg:
-        from tsr.utils import remove_background, resize_foreground
-        from rembg import new_session as rembg_new_session
-        sess = rembg_new_session()
-        image = remove_background(raw, sess)
+        from tsr.utils import resize_foreground
+        from services.segmentation_service import segment_foreground
+        # SAM gives a cleaner, fully-connected mask (no floating parts)
+        image = segment_foreground(raw)
         image = resize_foreground(image, 0.85)
         bg = Image.new("RGBA", image.size, (255, 255, 255, 255))
         bg.paste(image, mask=image.split()[3])
@@ -84,6 +84,11 @@ def _reconstruct(image: Image.Image, output_base: str, resolution: int, progress
 
     meshes = model.extract_mesh(scene_codes, has_vertex_color=False, resolution=resolution)
     mesh = meshes[0]
+
+    # Remove disconnected floating pieces (e.g. head separated from body)
+    components = mesh.split(only_watertight=False)
+    if len(components) > 1:
+        mesh = max(components, key=lambda m: len(m.faces))
 
     mesh.export(f"{output_base}.glb")
     mesh.export(f"{output_base}.stl")

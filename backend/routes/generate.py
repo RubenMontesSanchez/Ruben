@@ -9,6 +9,21 @@ router = APIRouter()
 jobs: dict = {}
 
 
+@router.post("/analyze")
+async def analyze_image(file: UploadFile = File(...)):
+    """Quick CLIP recognition — call after image upload, before generating."""
+    content = await file.read()
+    import io
+    from PIL import Image
+    from services.segmentation_service import recognize_object
+    try:
+        img = Image.open(io.BytesIO(content))
+        result = recognize_object(img)
+        return result
+    except Exception as e:
+        return {"label": "objeto", "confidence": 0.0}
+
+
 @router.post("/generate/image")
 async def generate_image_to_3d(
     background_tasks: BackgroundTasks,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { generateFromText, generateFromImage, pollStatus, JobStatus, TextOptions } from "@/lib/api";
+import { generateFromText, generateFromImage, analyzeImage, pollStatus, JobStatus, TextOptions } from "@/lib/api";
 import ProgressBar from "./ProgressBar";
 
 interface Props {
@@ -73,6 +73,8 @@ export default function GeneratorForm({ onComplete }: Props) {
   const [loading, setLoading]       = useState(false);
   const [job, setJob]               = useState<JobStatus | null>(null);
   const [error, setError]           = useState<string | null>(null);
+  const [detection, setDetection]   = useState<{ label: string; confidence: number } | null>(null);
+  const [analyzing, setAnalyzing]   = useState(false);
 
   // Image options
   const [resolution, setResolution] = useState(256);
@@ -85,11 +87,21 @@ export default function GeneratorForm({ onComplete }: Props) {
 
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setDetection(null);
+    setAnalyzing(true);
+    try {
+      const result = await analyzeImage(file);
+      setDetection(result);
+    } catch {
+      // silent — detection is optional
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -175,6 +187,16 @@ export default function GeneratorForm({ onComplete }: Props) {
             )}
           </div>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+          {analyzing && (
+            <p className="text-xs text-slate-400 animate-pulse">Analizando imagen...</p>
+          )}
+          {detection && !analyzing && (
+            <div className="flex items-center gap-2 px-3 py-1.5 glass rounded-lg w-fit">
+              <span className="text-xs text-slate-400">Detectado:</span>
+              <span className="text-xs font-semibold text-brand-400 capitalize">{detection.label}</span>
+              <span className="text-xs text-slate-500">{Math.round(detection.confidence * 100)}%</span>
+            </div>
+          )}
         </div>
       )}
 
