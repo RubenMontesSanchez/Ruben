@@ -44,7 +44,10 @@ def _get_model():
 
 def _preprocess(img_path: str, remove_bg: bool, enhance: bool) -> Image.Image:
     """Load, optionally enhance, optionally remove background."""
+    from PIL import ImageFile
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
     raw = Image.open(img_path)
+    raw.load()  # force full read before file handle closes
 
     if enhance:
         from PIL import ImageEnhance

@@ -1,9 +1,7 @@
-import io
 import os
 import uuid
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from PIL import Image
 
 router = APIRouter()
 
@@ -25,12 +23,8 @@ async def generate_image_to_3d(
 
     img_path = f"outputs/{job_id}_input.png"
     content = await file.read()
-    # Decode in-memory and re-save as PNG to guarantee a valid file
-    try:
-        img = Image.open(io.BytesIO(content)).convert("RGB")
-        img.save(img_path, "PNG")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Imagen inválida: {e}")
+    with open(img_path, "wb") as f:
+        f.write(content)
 
     background_tasks.add_task(_run_image_generation, job_id, img_path, resolution, remove_bg, enhance, pipeline)
     return {"job_id": job_id}
