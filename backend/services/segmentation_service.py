@@ -38,7 +38,11 @@ def _get_clip():
     global _clip_model, _clip_processor
     if _clip_model is None:
         from transformers import CLIPProcessor, CLIPModel
-        _clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        # use_safetensors=True avoids torch.load (no torch>=2.6 requirement)
+        _clip_model = CLIPModel.from_pretrained(
+            "openai/clip-vit-base-patch32",
+            use_safetensors=True,
+        )
         _clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
         _clip_model.eval()
     return _clip_model, _clip_processor
