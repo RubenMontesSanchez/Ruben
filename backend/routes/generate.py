@@ -12,16 +12,17 @@ jobs: dict = {}
 @router.post("/analyze")
 async def analyze_image(file: UploadFile = File(...)):
     """Quick CLIP recognition — call after image upload, before generating."""
-    content = await file.read()
     import io
     from PIL import Image
     from services.segmentation_service import recognize_object
+    content = await file.read()
     try:
         img = Image.open(io.BytesIO(content))
-        result = recognize_object(img)
-        return result
+        return recognize_object(img)
     except Exception as e:
-        return {"label": "objeto", "confidence": 0.0}
+        import traceback
+        traceback.print_exc()
+        return {"label": "objeto", "label_es": "objeto", "confidence": 0.0, "error": str(e)}
 
 
 @router.post("/generate/image")

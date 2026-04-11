@@ -18,42 +18,68 @@ _CATEGORIES = [
     "sculpture", "bust", "face", "hand", "tree", "rock", "building",
 ]
 
+_LABELS_ES = {
+    "person": "persona", "human figure": "figura humana", "animal": "animal",
+    "dog": "perro", "cat": "gato", "bird": "pájaro", "horse": "caballo",
+    "chair": "silla", "table": "mesa", "sofa": "sofá", "lamp": "lámpara",
+    "vase": "jarrón", "bottle": "botella", "cup": "taza", "mug": "taza",
+    "shoe": "zapato", "bag": "bolso", "helmet": "casco", "toy": "juguete",
+    "figurine": "figurita", "car": "coche", "motorcycle": "moto",
+    "sculpture": "escultura", "bust": "busto", "face": "cara",
+    "hand": "mano", "tree": "árbol", "rock": "roca", "building": "edificio",
+}
+
+# Cached model to avoid reloading on every request
+_clip_model = None
+_clip_processor = None
+
+
+def _get_clip():
+    global _clip_model, _clip_processor
+    if _clip_model is None:
+        from transformers import CLIPProcessor, CLIPModel
+        _clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        _clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+        _clip_model.eval()
+    return _clip_model, _clip_processor
+
 
 def recognize_object(image: Image.Image) -> dict:
     """
     Run CLIP zero-shot classification and return the top label + confidence.
-    Uses transformers (already installed by TripoSR).
-    Does NOT load onto GPU — runs on CPU to leave VRAM free.
+    Model is cached after first load (~600 MB download on first use).
+    Runs on CPU to leave VRAM free for TripoSR.
     """
     try:
         from transformers import CLIPProcessor, CLIPModel
     except ImportError:
-        return {"label": "objeto", "confidence": 0.0}
+        return {"label": "objeto", "label_es": "objeto", "confidence": 0.0, "error": "CLIP no instalado"}
 
-    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-    processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-    model.eval()
+    try:
+        model, processor = _get_clip()
 
-    img_rgb = image.convert("RGB").resize((224, 224))
-    inputs = processor(
-        text=_CATEGORIES,
-        images=img_rgb,
-        return_tensors="pt",
-        padding=True,
-    )
+        img_rgb = image.convert("RGB").resize((224, 224))
+        inputs = processor(
+            text=_CATEGORIES,
+            images=img_rgb,
+            return_tensors="pt",
+            padding=True,
+        )
 
-    with torch.no_grad():
-        outputs = model(**inputs)
-        probs = outputs.logits_per_image.softmax(dim=1)[0]
+        with torch.no_grad():
+            outputs = model(**inputs)
+            probs = outputs.logits_per_image.softmax(dim=1)[0]
 
-    top_idx = int(probs.argmax())
-    del model
-    torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        top_idx = int(probs.argmax())
+        label = _CATEGORIES[top_idx]
 
-    return {
-        "label": _CATEGORIES[top_idx],
-        "confidence": float(probs[top_idx]),
-    }
+        return {
+            "label": label,
+            "label_es": _LABELS_ES.get(label, label),
+            "confidence": float(probs[top_idx]),
+        }
+    except Exception as e:
+        return {"label": "objeto", "label_es": "objeto", "confidence": 0.0, "error": str(e)}
 
 
 def segment_foreground(image: Image.Image) -> Image.Image:

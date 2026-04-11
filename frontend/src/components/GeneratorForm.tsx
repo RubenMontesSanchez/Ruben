@@ -73,7 +73,7 @@ export default function GeneratorForm({ onComplete }: Props) {
   const [loading, setLoading]       = useState(false);
   const [job, setJob]               = useState<JobStatus | null>(null);
   const [error, setError]           = useState<string | null>(null);
-  const [detection, setDetection]   = useState<{ label: string; confidence: number } | null>(null);
+  const [detection, setDetection]   = useState<{ label: string; label_es: string; confidence: number; error?: string } | null>(null);
   const [analyzing, setAnalyzing]   = useState(false);
 
   // Image options
@@ -193,8 +193,14 @@ export default function GeneratorForm({ onComplete }: Props) {
           {detection && !analyzing && (
             <div className="flex items-center gap-2 px-3 py-1.5 glass rounded-lg w-fit">
               <span className="text-xs text-slate-400">Detectado:</span>
-              <span className="text-xs font-semibold text-brand-400 capitalize">{detection.label}</span>
-              <span className="text-xs text-slate-500">{Math.round(detection.confidence * 100)}%</span>
+              {detection.error ? (
+                <span className="text-xs text-amber-400">{detection.error}</span>
+              ) : (
+                <>
+                  <span className="text-xs font-semibold text-brand-400 capitalize">{detection.label_es}</span>
+                  <span className="text-xs text-slate-500">{Math.round(detection.confidence * 100)}%</span>
+                </>
+              )}
             </div>
           )}
         </div>
